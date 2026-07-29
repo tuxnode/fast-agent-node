@@ -1,95 +1,35 @@
 # fast-agent-node
 
-Intelligent AI auto completion backend.
+Lightweight TypeScript backend for AI-assisted completion and content generation.
 
-`fast-agent-node` is planned as a lightweight AI code completion microservice
-that can be integrated into common web backends. The service exposes simple
-HTTP/SSE APIs for inline code completion, routes requests to different model
-providers, and keeps model/runtime details outside of the host application.
+Current focus:
 
-## Tech Stack
+- Inline code completion
+- JSON and SSE streaming responses
+- OpenAI-compatible model providers, such as DeepSeek
+- Future form-fill suggestions for OA-style large text fields
 
-- Runtime: Node.js 20+
-- Language: TypeScript
-- Package manager: pnpm
-- HTTP framework: Fastify
-- Validation: Zod
-- Streaming: Server-Sent Events
-- Testing: Vitest
-- Linting and formatting: ESLint, Prettier
-- Model providers:
-  - OpenAI-compatible APIs
-  - Ollama
-  - vLLM or other OpenAI-compatible self-hosted runtimes
+## Stack
 
-## Environment Requirements
+- Node.js 20+
+- pnpm 9+
+- TypeScript
+- Fastify
+- Zod
+- Vitest
 
-- Node.js 20 or newer
-- pnpm 9 or newer
-- Optional: Ollama, vLLM, or another local model runtime
-- Optional: Docker, if you want to run model services or databases locally
-
-Check your local versions:
-
-```bash
-node --version
-pnpm --version
-```
-
-Install pnpm with Corepack if needed:
-
-```bash
-corepack enable
-corepack prepare pnpm@latest --activate
-```
-
-## Planned Project Structure
+## Project Structure
 
 ```text
-fast-agent-node
-├── apps
-│   └── server
-├── packages
-│   ├── adapters
-│   ├── context
-│   ├── core
-│   ├── sdk
-│   └── shared
-├── examples
-│   ├── express-backend
-│   ├── fastify-backend
-│   └── monaco-editor
-└── docs
+apps/server              Fastify API service
+apps/server/src/routes   HTTP routes
+apps/server/src/providers Model provider integrations
+apps/server/src/completions Completion schemas and types
+apps/server/src/http     Shared HTTP helpers
+docs                     API documentation
 ```
 
-## Environment Variables
-
-Create a local environment file:
-
-```bash
-cp .env.example .env
-```
-
-Recommended variables:
-
-```bash
-NODE_ENV=development
-PORT=3000
-HOST=0.0.0.0
-
-# Model routing
-MODEL_PROVIDER=openai-compatible
-MODEL_NAME=qwen2.5-coder
-MODEL_BASE_URL=http://localhost:11434/v1
-MODEL_API_KEY=
-
-# Completion behavior
-MAX_COMPLETION_TOKENS=128
-REQUEST_TIMEOUT_MS=30000
-ENABLE_STREAMING=true
-```
-
-## Setup Commands
+## Setup
 
 Install dependencies:
 
@@ -97,87 +37,80 @@ Install dependencies:
 pnpm install
 ```
 
-Run the development server:
+Create local config:
+
+```bash
+cp .env.example .env
+```
+
+Example DeepSeek config:
+
+```env
+NODE_ENV=development
+PORT=3000
+HOST=0.0.0.0
+
+MODEL_PROVIDER=openai-compatible
+MODEL_NAME=deepseek-chat
+MODEL_BASE_URL=https://api.deepseek.com
+MODEL_API_KEY=your_api_key
+
+MAX_COMPLETION_TOKENS=128
+REQUEST_TIMEOUT_MS=30000
+ENABLE_STREAMING=true
+```
+
+Do not commit real API keys.
+
+## Commands
 
 ```bash
 pnpm dev
-```
-
-Build the project:
-
-```bash
+pnpm --filter @fast-agent/server test
+pnpm --filter @fast-agent/server typecheck
 pnpm build
-```
-
-Run tests:
-
-```bash
-pnpm test
-```
-
-Run linting:
-
-```bash
-pnpm lint
-```
-
-Format code:
-
-```bash
 pnpm format
 ```
 
-## Local Model Example
-
-If you use Ollama locally, start a coding model first:
+If pnpm version switching is blocked, use local binaries:
 
 ```bash
-ollama pull qwen2.5-coder
-ollama serve
+./node_modules/.bin/vitest run apps/server/src/app.test.ts apps/server/src/providers/openai-compatible.test.ts
+./node_modules/.bin/tsc -p apps/server/tsconfig.json --noEmit
 ```
 
-Then configure:
+## API
 
-```bash
-MODEL_PROVIDER=ollama
-MODEL_NAME=qwen2.5-coder
-MODEL_BASE_URL=http://localhost:11434
+Health check:
+
+```http
+GET /health
 ```
 
-## Planned API
-
-Inline completion endpoint:
+Inline completion:
 
 ```http
 POST /v1/completions/inline
 ```
 
-Example request:
+See:
 
-```json
-{
-  "language": "typescript",
-  "filePath": "src/service/user.ts",
-  "prefix": "async function getUser(id: string) {\n  ",
-  "suffix": "\n}",
-  "maxTokens": 128,
-  "stream": true
-}
+- [中文 API 文档](docs/api.zh-CN.md)
+- [English API Docs](docs/api.en.md)
+
+## Example
+
+```bash
+curl -X POST http://localhost:3000/v1/completions/inline \
+  -H "Content-Type: application/json" \
+  -d '{
+    "language": "typescript",
+    "filePath": "src/math.ts",
+    "prefix": "export function add(a: number, b: number) {\n  ",
+    "suffix": "\n}",
+    "maxTokens": 128,
+    "stream": false
+  }'
 ```
 
-Example response:
-
-```json
-{
-  "id": "cmpl_123",
-  "completion": "const user = await db.user.findUnique({ where: { id } });\n  return user;",
-  "finishReason": "stop",
-  "model": "qwen2.5-coder"
-}
-```
-
-## Development Status
-
-This repository is currently in the planning stage. The README documents the
-target architecture, framework choices, and setup commands before the service
-implementation is added.
+For streaming, set `"stream": true` and use `curl -N`.
