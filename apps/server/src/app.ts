@@ -9,13 +9,16 @@ import {
 
 type BuildAppOptions = {
   inlineCompletionProvider?: InlineCompletionProvider;
+  logger?: boolean;
 };
 
 export async function buildApp(options: BuildAppOptions = {}) {
   const app = Fastify({
-    logger: {
-      level: config.NODE_ENV === "development" ? "info" : "warn"
-    }
+    logger:
+      options.logger ??
+      ({
+        level: config.NODE_ENV === "development" ? "info" : "warn"
+      } as const)
   });
 
   app.get("/health", async () => ({
