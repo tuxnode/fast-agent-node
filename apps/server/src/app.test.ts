@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildApp } from "./app.js";
-import type { InlineCompletionProvider } from "./completions/inline-completion.js";
+import type {
+  InlineCompletionProvider,
+  InlineCompletionStreamProvider
+} from "./completions/inline-completion.js";
 import { OpenAICompatibleProviderError } from "./providers/openai-compatible.js";
 
 describe("server routes", () => {
@@ -130,6 +133,52 @@ describe("server routes", () => {
       expect(response.json()).toEqual({
         error: "upstream failed"
       });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("streams inline completion chunks when requested", async () => {
+    async function* streamProvider() {
+      yield {
+        delta: "return "
+      };
+      yield {
+        delta: "a + b;",
+        finishReason: "stop"
+      };
+    }
+
+    const provider = vi.fn<InlineCompletionProvider>();
+    const app = await buildApp({
+      inlineCompletionProvider: provider,
+      inlineCompletionStreamProvider:
+        streamProvider as InlineCompletionStreamProvider,
+      logger: false
+    });
+
+    try {
+      const response = await app.inject({
+        method: "POST",
+        url: "/v1/completions/inline",
+        payload: {
+          language: "typescript",
+          filePath: "src/math.ts",
+          prefix: "export function add(a: number, b: number) {\n  ",
+          suffix: "\n}",
+          maxTokens: 64,
+          stream: true
+        }
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.headers["content-type"]).toContain("text/event-stream");
+      expect(response.body).toContain('data: {"delta":"return "}');
+      expect(response.body).toContain(
+        'data: {"delta":"a + b;","finishReason":"stop"}'
+      );
+      expect(response.body).toContain("data: [DONE]");
+      expect(provider).not.toHaveBeenCalled();
     } finally {
       await app.close();
     }

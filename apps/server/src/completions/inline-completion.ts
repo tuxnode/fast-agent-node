@@ -20,6 +20,15 @@ export type CompletionResult = {
   model: string;
 };
 
+export type CompletionStreamChunk = {
+  delta: string;
+  finishReason?: string;
+};
+
 export type InlineCompletionProvider = (
   request: InlineCompletionRequest
 ) => Promise<CompletionResult>;
+
+export type InlineCompletionStreamProvider = (
+  request: InlineCompletionRequest
+) => AsyncIterable<CompletionStreamChunk>;

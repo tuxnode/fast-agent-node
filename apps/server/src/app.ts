@@ -1,12 +1,19 @@
 import Fastify from "fastify";
 
-import type { InlineCompletionProvider } from "./completions/inline-completion.js";
+import type {
+  InlineCompletionProvider,
+  InlineCompletionStreamProvider
+} from "./completions/inline-completion.js";
 import { config } from "./config.js";
-import { createInlineCompletion } from "./providers/openai-compatible.js";
+import {
+  createInlineCompletion,
+  createInlineCompletionStream
+} from "./providers/openai-compatible.js";
 import { createInlineCompletionRoutes } from "./routes/inline-completion.js";
 
 type BuildAppOptions = {
   inlineCompletionProvider?: InlineCompletionProvider;
+  inlineCompletionStreamProvider?: InlineCompletionStreamProvider;
   logger?: boolean;
 };
 
@@ -28,7 +35,8 @@ export async function buildApp(options: BuildAppOptions = {}) {
 
   await app.register(
     createInlineCompletionRoutes(
-      options.inlineCompletionProvider ?? createInlineCompletion
+      options.inlineCompletionProvider ?? createInlineCompletion,
+      options.inlineCompletionStreamProvider ?? createInlineCompletionStream
     )
   );
 
