@@ -1,7 +1,10 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
-import { config } from "../config.js";
+import {
+  createInlineCompletion,
+  OpenAICompatibleProviderError
+} from "../providers/openai-compatible.js";
 
 export const inlineCompletionRequestSchema = z.object({
   language: z.string().min(1),
@@ -27,11 +30,22 @@ export const inlineCompletionRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    return {
-      id: `cmpl_${crypto.randomUUID()}`,
-      completion: "",
-      finishReason: "stop",
-      model: config.MODEL_NAME
-    };
+    try {
+      return await createInlineCompletion(parsedBody.data);
+    } catch (error) {
+      if (error instanceof OpenAICompatibleProviderError) {
+        request.log.error(error);
+
+        return reply.code(error.statusCode).send({
+          error: error.message
+        });
+      }
+
+      request.log.error(error);
+
+      return reply.code(500).send({
+        error: "Inline completion failed"
+      });
+    }
   });
 };
