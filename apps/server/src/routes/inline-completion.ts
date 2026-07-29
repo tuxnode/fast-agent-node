@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
 import {
-  createInlineCompletion,
+  type CompletionResult,
   OpenAICompatibleProviderError
 } from "../providers/openai-compatible.js";
 
@@ -19,7 +19,14 @@ export type InlineCompletionRequest = z.infer<
   typeof inlineCompletionRequestSchema
 >;
 
-export const inlineCompletionRoutes: FastifyPluginAsync = async (app) => {
+export type InlineCompletionProvider = (
+  request: InlineCompletionRequest
+) => Promise<CompletionResult>;
+
+export function createInlineCompletionRoutes(
+  provider: InlineCompletionProvider
+): FastifyPluginAsync {
+  return async (app) => {
   app.post("/v1/completions/inline", async (request, reply) => {
     const parsedBody = inlineCompletionRequestSchema.safeParse(request.body);
 
@@ -31,7 +38,7 @@ export const inlineCompletionRoutes: FastifyPluginAsync = async (app) => {
     }
 
     try {
-      return await createInlineCompletion(parsedBody.data);
+      return await provider(parsedBody.data);
     } catch (error) {
       if (error instanceof OpenAICompatibleProviderError) {
         request.log.error(error);
@@ -48,4 +55,5 @@ export const inlineCompletionRoutes: FastifyPluginAsync = async (app) => {
       });
     }
   });
-};
+  };
+}

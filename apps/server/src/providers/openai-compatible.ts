@@ -57,7 +57,6 @@ export async function createInlineCompletion(
           {
             role: "system",
             content:
-            // prompt
               "You are a code completion engine. Return only the inserted code. Do not include markdown fences or explanations."
           },
           {

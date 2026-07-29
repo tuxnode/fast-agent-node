@@ -1,9 +1,17 @@
 import Fastify from "fastify";
 
 import { config } from "./config.js";
-import { inlineCompletionRoutes } from "./routes/inline-completion.js";
+import { createInlineCompletion } from "./providers/openai-compatible.js";
+import {
+  createInlineCompletionRoutes,
+  type InlineCompletionProvider
+} from "./routes/inline-completion.js";
 
-export async function buildApp() {
+type BuildAppOptions = {
+  inlineCompletionProvider?: InlineCompletionProvider;
+};
+
+export async function buildApp(options: BuildAppOptions = {}) {
   const app = Fastify({
     logger: {
       level: config.NODE_ENV === "development" ? "info" : "warn"
@@ -17,7 +25,11 @@ export async function buildApp() {
     modelName: config.MODEL_NAME
   }));
 
-  await app.register(inlineCompletionRoutes);
+  await app.register(
+    createInlineCompletionRoutes(
+      options.inlineCompletionProvider ?? createInlineCompletion
+    )
+  );
 
   return app;
 }
