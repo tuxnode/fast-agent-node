@@ -16,13 +16,12 @@
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
-    "baseUrl": ".",
     "paths": {
-      "@fast-agent/adapters": ["packages/adapters/src/index.ts"],
-      "@fast-agent/context": ["packages/context/src/index.ts"],
-      "@fast-agent/core": ["packages/core/src/index.ts"],
-      "@fast-agent/sdk": ["packages/sdk/src/index.ts"],
-      "@fast-agent/shared": ["packages/shared/src/index.ts"]
+      "@fast-agent/adapters": ["./packages/adapters/src/index.ts"],
+      "@fast-agent/context": ["./packages/context/src/index.ts"],
+      "@fast-agent/core": ["./packages/core/src/index.ts"],
+      "@fast-agent/sdk": ["./packages/sdk/src/index.ts"],
+      "@fast-agent/shared": ["./packages/shared/src/index.ts"]
     }
   }
 }
