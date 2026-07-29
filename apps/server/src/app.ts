@@ -1,8 +1,9 @@
 import Fastify from "fastify";
 
 import { config } from "./config.js";
+import { inlineCompletionRoutes } from "./routes/inline-completion.js";
 
-export function buildApp() {
+export async function buildApp() {
   const app = Fastify({
     logger: {
       level: config.NODE_ENV === "development" ? "info" : "warn"
@@ -15,6 +16,8 @@ export function buildApp() {
     modelProvider: config.MODEL_PROVIDER,
     modelName: config.MODEL_NAME
   }));
+
+  await app.register(inlineCompletionRoutes);
 
   return app;
 }
