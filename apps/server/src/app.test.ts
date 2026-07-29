@@ -54,7 +54,13 @@ describe("server routes", () => {
 
       expect(response.statusCode).toBe(400);
       expect(response.json()).toMatchObject({
-        error: "Invalid inline completion request"
+        error: {
+          code: "INVALID_REQUEST",
+          message: "Invalid inline completion request",
+          details: {
+            language: expect.any(Array)
+          }
+        }
       });
       expect(provider).not.toHaveBeenCalled();
     } finally {
@@ -131,7 +137,10 @@ describe("server routes", () => {
 
       expect(response.statusCode).toBe(502);
       expect(response.json()).toEqual({
-        error: "upstream failed"
+        error: {
+          code: "MODEL_PROVIDER_ERROR",
+          message: "upstream failed"
+        }
       });
     } finally {
       await app.close();

@@ -8,6 +8,7 @@ import {
 import {
   OpenAICompatibleProviderError
 } from "../providers/openai-compatible.js";
+import { errorResponse } from "../http/errors.js";
 
 export function createInlineCompletionRoutes(
   provider: InlineCompletionProvider,
@@ -18,10 +19,13 @@ export function createInlineCompletionRoutes(
       const parsedBody = inlineCompletionRequestSchema.safeParse(request.body);
 
       if (!parsedBody.success) {
-        return reply.code(400).send({
-          error: "Invalid inline completion request",
-          details: parsedBody.error.flatten().fieldErrors
-        });
+        return reply.code(400).send(
+          errorResponse(
+            "INVALID_REQUEST",
+            "Invalid inline completion request",
+            parsedBody.error.flatten().fieldErrors
+          )
+        );
       }
 
       try {
@@ -52,16 +56,16 @@ export function createInlineCompletionRoutes(
         if (error instanceof OpenAICompatibleProviderError) {
           request.log.error(error);
 
-          return reply.code(error.statusCode).send({
-            error: error.message
-          });
+          return reply
+            .code(error.statusCode)
+            .send(errorResponse("MODEL_PROVIDER_ERROR", error.message));
         }
 
         request.log.error(error);
 
-        return reply.code(500).send({
-          error: "Inline completion failed"
-        });
+        return reply
+          .code(500)
+          .send(errorResponse("INTERNAL_ERROR", "Inline completion failed"));
       }
     });
   };
