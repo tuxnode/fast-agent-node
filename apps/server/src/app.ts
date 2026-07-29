@@ -1,11 +1,9 @@
 import Fastify from "fastify";
 
+import type { InlineCompletionProvider } from "./completions/inline-completion.js";
 import { config } from "./config.js";
 import { createInlineCompletion } from "./providers/openai-compatible.js";
-import {
-  createInlineCompletionRoutes,
-  type InlineCompletionProvider
-} from "./routes/inline-completion.js";
+import { createInlineCompletionRoutes } from "./routes/inline-completion.js";
 
 type BuildAppOptions = {
   inlineCompletionProvider?: InlineCompletionProvider;

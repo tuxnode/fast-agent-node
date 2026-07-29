@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildApp } from "./app.js";
+import type { InlineCompletionProvider } from "./completions/inline-completion.js";
 import { OpenAICompatibleProviderError } from "./providers/openai-compatible.js";
-import type { InlineCompletionProvider } from "./routes/inline-completion.js";
 
 describe("server routes", () => {
   afterEach(() => {
