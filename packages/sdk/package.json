@@ -1,7 +1,9 @@
 {
   "name": "@fast-agent/sdk",
   "version": "0.1.0",
+  "description": "TypeScript client SDK for fast-agent-node.",
   "private": false,
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -12,8 +14,24 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
+  "keywords": [
+    "ai",
+    "completion",
+    "forms",
+    "fastify",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tuxnode/fast-llm-node.git",
+    "directory": "packages/sdk"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
