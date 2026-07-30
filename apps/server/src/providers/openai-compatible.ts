@@ -4,6 +4,10 @@ import type {
   CompletionResult,
   InlineCompletionRequest
 } from "../completions/inline-completion.js";
+import { buildContextWindow } from "../context/context-window.js";
+
+const INLINE_PREFIX_MAX_CHARS = 6000;
+const INLINE_SUFFIX_MAX_CHARS = 2000;
 
 type ChatCompletionResponse = {
   id?: string;
@@ -313,17 +317,32 @@ function parseStreamLine(line: string): CompletionStreamChunk | null {
 }
 
 function buildInlineCompletionPrompt(request: InlineCompletionRequest) {
+  const prefixWindow = buildContextWindow({
+    text: request.prefix,
+    maxChars: INLINE_PREFIX_MAX_CHARS,
+    strategy: "tail"
+  });
+  const suffixWindow = buildContextWindow({
+    text: request.suffix,
+    maxChars: INLINE_SUFFIX_MAX_CHARS,
+    strategy: "head"
+  });
+
   return [
     "Complete the code at the cursor.",
     "",
     `Language: ${request.language}`,
     `File: ${request.filePath}`,
+    `Prefix truncated: ${prefixWindow.truncated}`,
+    `Prefix original length: ${prefixWindow.originalLength}`,
+    `Suffix truncated: ${suffixWindow.truncated}`,
+    `Suffix original length: ${suffixWindow.originalLength}`,
     "",
     "Prefix:",
-    request.prefix,
+    prefixWindow.text,
     "",
     "Suffix:",
-    request.suffix,
+    suffixWindow.text,
     "",
     "Return only the code that should be inserted between Prefix and Suffix."
   ].join("\n");

@@ -107,6 +107,45 @@ describe("openai-compatible provider", () => {
     expect(body.max_tokens).toBe(128);
   });
 
+  it("uses context windows for long inline completion prompts", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              finish_reason: "stop",
+              message: {
+                content: "return value;"
+              }
+            }
+          ]
+        })
+      )
+    );
+    const provider = createOpenAICompatibleProvider(providerConfig, fetchImpl);
+    const longPrefix = `DROP_PREFIX${"p".repeat(6100)}TAIL_PREFIX`;
+    const longSuffix = `HEAD_SUFFIX${"s".repeat(2100)}DROP_SUFFIX`;
+
+    await provider({
+      ...completionRequest,
+      prefix: longPrefix,
+      suffix: longSuffix
+    });
+
+    const [, init] = fetchImpl.mock.calls[0] ?? [];
+    const body = JSON.parse(String(init?.body));
+    const prompt = String(body.messages[1].content);
+
+    expect(prompt).toContain("Prefix truncated: true");
+    expect(prompt).toContain(`Prefix original length: ${longPrefix.length}`);
+    expect(prompt).toContain("Suffix truncated: true");
+    expect(prompt).toContain(`Suffix original length: ${longSuffix.length}`);
+    expect(prompt).toContain("TAIL_PREFIX");
+    expect(prompt).toContain("HEAD_SUFFIX");
+    expect(prompt).not.toContain("DROP_PREFIX");
+    expect(prompt).not.toContain("DROP_SUFFIX");
+  });
+
   it("throws 500 when API key is missing", async () => {
     const provider = createOpenAICompatibleProvider({
       ...providerConfig,
