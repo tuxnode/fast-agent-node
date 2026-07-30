@@ -3,6 +3,7 @@ import {
   type FormFillSuggestionRequest,
   type FormFillSuggestionResult
 } from "./form-fill.js";
+import { validateFormFillSuggestions } from "./form-fill-validation.js";
 
 type ModelMessage = {
   role: "system" | "user";
@@ -32,12 +33,18 @@ export async function createFormFillSuggestions(
     messages: buildFormFillMessages(request, fillableFields)
   });
   const parsedResponse = parseModelResponse(modelResponse.content);
-
-  return {
-    id: modelResponse.id ?? `fill_${crypto.randomUUID()}`,
+  const validated = validateFormFillSuggestions({
     suggestions: normalizeSuggestions(parsedResponse.suggestions, fillableFields),
     missingFields: normalizeStringArray(parsedResponse.missingFields),
     warnings: normalizeStringArray(parsedResponse.warnings),
+    fillableFields
+  });
+
+  return {
+    id: modelResponse.id ?? `fill_${crypto.randomUUID()}`,
+    suggestions: validated.suggestions,
+    missingFields: validated.missingFields,
+    warnings: validated.warnings,
     model: modelResponse.model
   };
 }

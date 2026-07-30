@@ -161,7 +161,7 @@ describe("form fill workflow", () => {
     expect(result).toMatchObject({
       id: "fill_invalid_json",
       suggestions: {},
-      missingFields: [],
+      missingFields: ["summary", "nextPlan"],
       warnings: ["Model response was not valid JSON"],
       model: "deepseek-chat"
     });
