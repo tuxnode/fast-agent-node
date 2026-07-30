@@ -138,4 +138,110 @@ describe("form fill routes", () => {
       await app.close();
     }
   });
+
+  it("does not return suggestions for existing values when overwrite is false", async () => {
+    const modelClient = vi.fn<FormFillModelClient>().mockResolvedValue({
+      id: "chatcmpl_existing",
+      model: "deepseek-chat",
+      content: JSON.stringify({
+        suggestions: {
+          summary: "模型试图覆盖已有总结。",
+          nextPlan: "继续完善路由集成测试。"
+        },
+        missingFields: [],
+        warnings: []
+      })
+    });
+    const app = await buildApp({
+      formFillModelClient: modelClient,
+      logger: false
+    });
+
+    try {
+      const response = await app.inject({
+        method: "POST",
+        url: "/v1/forms/fill-suggestions",
+        payload: {
+          formId: "weekly_report",
+          userMessage: "帮我补充下周计划。",
+          fields: [
+            {
+              name: "summary",
+              label: "工作总结",
+              type: "textarea",
+              required: true
+            },
+            {
+              name: "nextPlan",
+              label: "下周计划",
+              type: "textarea",
+              required: true
+            }
+          ],
+          currentValues: {
+            summary: "已有工作总结。"
+          },
+          overwrite: false
+        }
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({
+        suggestions: {
+          nextPlan: "继续完善路由集成测试。"
+        },
+        missingFields: []
+      });
+      expect(response.json().suggestions).not.toHaveProperty("summary");
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("returns validation warnings for invalid select options", async () => {
+    const modelClient = vi.fn<FormFillModelClient>().mockResolvedValue({
+      id: "chatcmpl_select",
+      model: "deepseek-chat",
+      content: JSON.stringify({
+        suggestions: {
+          status: "未知状态"
+        },
+        missingFields: [],
+        warnings: []
+      })
+    });
+    const app = await buildApp({
+      formFillModelClient: modelClient,
+      logger: false
+    });
+
+    try {
+      const response = await app.inject({
+        method: "POST",
+        url: "/v1/forms/fill-suggestions",
+        payload: {
+          formId: "weekly_report",
+          userMessage: "帮我填写当前状态。",
+          fields: [
+            {
+              name: "status",
+              label: "状态",
+              type: "select",
+              required: true,
+              options: ["正常", "有风险"]
+            }
+          ]
+        }
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({
+        suggestions: {},
+        missingFields: ["status"],
+        warnings: ['Removed invalid option "未知状态" for field "status".']
+      });
+    } finally {
+      await app.close();
+    }
+  });
 });
