@@ -151,6 +151,15 @@ Content-Type: application/json
 
 字段类型支持：`text`、`textarea`、`number`、`date`、`select`。
 
+### 后处理规则
+
+- 默认不覆盖 `currentValues` 中已有值的字段。
+- 只有 `overwrite: true` 时，才允许重新生成已有字段。
+- 空字符串建议会被移除，并加入 `warnings`。
+- `select` 字段的建议值必须命中 `options`，否则会被移除。
+- 必填字段没有有效建议时，会加入 `missingFields`。
+- `suggestions` 只会包含请求中声明过的字段名。
+
 ### 响应示例
 
 ```json

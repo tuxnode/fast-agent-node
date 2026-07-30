@@ -151,6 +151,15 @@ Fields:
 
 Supported field types: `text`, `textarea`, `number`, `date`, `select`.
 
+### Validation Rules
+
+- Existing values in `currentValues` are preserved by default.
+- Existing fields are regenerated only when `overwrite` is `true`.
+- Empty string suggestions are removed and added to `warnings`.
+- `select` suggestions must match one of the field `options`.
+- Required fields without valid suggestions are added to `missingFields`.
+- `suggestions` only contains field names declared in the request.
+
 ### Response Example
 
 ```json
