@@ -3,7 +3,12 @@ import {
   type FormFillSuggestionRequest,
   type FormFillSuggestionResult
 } from "./form-fill.js";
+import { buildContextWindow } from "../context/context-window.js";
 import { validateFormFillSuggestions } from "./form-fill-validation.js";
+
+const FORM_USER_MESSAGE_MAX_CHARS = 4000;
+const FORM_FIELD_DESCRIPTION_MAX_CHARS = 1000;
+const FORM_CURRENT_VALUE_MAX_CHARS = 2000;
 
 type ModelMessage = {
   role: "system" | "user";
@@ -65,6 +70,8 @@ function buildFormFillMessages(
   request: FormFillSuggestionRequest,
   fillableFields: FormField[]
 ): ModelMessage[] {
+  const context = buildFormFillPromptContext(request, fillableFields);
+
   return [
     {
       role: "system",
@@ -79,18 +86,76 @@ function buildFormFillMessages(
         "Return JSON with suggestions, missingFields, and warnings.",
         "",
         `formId: ${request.formId}`,
+        "contextMetadata:",
+        JSON.stringify(context.metadata, null, 2),
         "",
         "userMessage:",
-        request.userMessage,
+        context.userMessage,
         "",
         "fillableFields:",
-        JSON.stringify(fillableFields, null, 2),
+        JSON.stringify(context.fillableFields, null, 2),
         "",
         "currentValues:",
-        JSON.stringify(request.currentValues, null, 2)
+        JSON.stringify(context.currentValues, null, 2)
       ].join("\n")
     }
   ];
+}
+
+function buildFormFillPromptContext(
+  request: FormFillSuggestionRequest,
+  fillableFields: FormField[]
+) {
+  const userMessageWindow = buildContextWindow({
+    text: request.userMessage,
+    maxChars: FORM_USER_MESSAGE_MAX_CHARS,
+    strategy: "tail"
+  });
+  const fieldDescriptionMetadata: Record<string, boolean> = {};
+  const currentValueMetadata: Record<string, boolean> = {};
+
+  const normalizedFields = fillableFields.map((field) => {
+    if (!field.description) {
+      return field;
+    }
+
+    const descriptionWindow = buildContextWindow({
+      text: field.description,
+      maxChars: FORM_FIELD_DESCRIPTION_MAX_CHARS,
+      strategy: "head"
+    });
+    fieldDescriptionMetadata[field.name] = descriptionWindow.truncated;
+
+    return {
+      ...field,
+      description: descriptionWindow.text
+    };
+  });
+
+  const normalizedCurrentValues = Object.fromEntries(
+    Object.entries(request.currentValues).map(([name, value]) => {
+      const valueWindow = buildContextWindow({
+        text: value,
+        maxChars: FORM_CURRENT_VALUE_MAX_CHARS,
+        strategy: "head"
+      });
+      currentValueMetadata[name] = valueWindow.truncated;
+
+      return [name, valueWindow.text];
+    })
+  );
+
+  return {
+    userMessage: userMessageWindow.text,
+    fillableFields: normalizedFields,
+    currentValues: normalizedCurrentValues,
+    metadata: {
+      userMessageTruncated: userMessageWindow.truncated,
+      userMessageOriginalLength: userMessageWindow.originalLength,
+      fieldDescriptionTruncated: fieldDescriptionMetadata,
+      currentValueTruncated: currentValueMetadata
+    }
+  };
 }
 
 function parseModelResponse(content: string): ModelFormFillResponse {

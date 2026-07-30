@@ -166,4 +166,56 @@ describe("form fill workflow", () => {
       model: "deepseek-chat"
     });
   });
+
+  it("uses context windows for long form fill prompt inputs", async () => {
+    const modelClient = vi.fn<FormFillModelClient>().mockResolvedValue({
+      id: "fill_context",
+      model: "deepseek-chat",
+      content: JSON.stringify({
+        suggestions: {
+          summary: "已根据裁剪后的上下文生成建议。"
+        },
+        missingFields: [],
+        warnings: []
+      })
+    });
+    const longUserMessage = `DROP_USER${"u".repeat(4100)}KEEP_USER`;
+    const longDescription = `KEEP_DESCRIPTION${"d".repeat(1100)}DROP_DESCRIPTION`;
+    const longCurrentValue = `KEEP_CURRENT${"c".repeat(2100)}DROP_CURRENT`;
+
+    await createFormFillSuggestions(
+      {
+        ...baseRequest,
+        userMessage: longUserMessage,
+        fields: [
+          {
+            name: "summary",
+            label: "工作总结",
+            type: "textarea",
+            required: true,
+            description: longDescription
+          }
+        ],
+        currentValues: {
+          existing: longCurrentValue
+        }
+      },
+      modelClient
+    );
+
+    const prompt = modelClient.mock.calls[0]?.[0].messages[1]?.content ?? "";
+
+    expect(prompt).toContain('"userMessageTruncated": true');
+    expect(prompt).toContain(
+      `"userMessageOriginalLength": ${longUserMessage.length}`
+    );
+    expect(prompt).toContain('"summary": true');
+    expect(prompt).toContain('"existing": true');
+    expect(prompt).toContain("KEEP_USER");
+    expect(prompt).toContain("KEEP_DESCRIPTION");
+    expect(prompt).toContain("KEEP_CURRENT");
+    expect(prompt).not.toContain("DROP_USER");
+    expect(prompt).not.toContain("DROP_DESCRIPTION");
+    expect(prompt).not.toContain("DROP_CURRENT");
+  });
 });
