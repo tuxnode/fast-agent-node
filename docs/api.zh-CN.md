@@ -107,6 +107,92 @@ curl -N -X POST http://localhost:3000/v1/completions/inline \
   }'
 ```
 
+## 表单填写建议
+
+```http
+POST /v1/forms/fill-suggestions
+Content-Type: application/json
+```
+
+根据用户描述、表单字段定义和已有字段值生成填写建议。该接口只返回建议，不提交表单，也不执行 OA 写操作。
+
+### 请求体
+
+```json
+{
+  "formId": "weekly_report",
+  "userMessage": "本周完成了表单填写 workflow、provider 和 route。",
+  "fields": [
+    {
+      "name": "summary",
+      "label": "工作总结",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "nextPlan",
+      "label": "下周计划",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "currentValues": {},
+  "overwrite": false
+}
+```
+
+字段说明：
+
+- `formId`: 表单标识。
+- `userMessage`: 用户对填写内容的自然语言描述。
+- `fields`: 可填写字段列表。
+- `currentValues`: 可选，当前已有字段值。
+- `overwrite`: 可选，默认 `false`，不覆盖已有值。
+
+字段类型支持：`text`、`textarea`、`number`、`date`、`select`。
+
+### 响应示例
+
+```json
+{
+  "id": "chatcmpl_123",
+  "suggestions": {
+    "summary": "本周完成了表单填写能力的基础实现，包括 workflow、provider 和 route。",
+    "nextPlan": "下周计划补充真实接口验证和文档示例。"
+  },
+  "missingFields": [],
+  "warnings": [],
+  "model": "deepseek-chat"
+}
+```
+
+### 调用示例
+
+```bash
+curl -X POST http://localhost:3000/v1/forms/fill-suggestions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "formId": "weekly_report",
+    "userMessage": "本周完成了表单填写 workflow、provider 和 route，下周准备做真实验证。",
+    "fields": [
+      {
+        "name": "summary",
+        "label": "工作总结",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "name": "nextPlan",
+        "label": "下周计划",
+        "type": "textarea",
+        "required": true
+      }
+    ],
+    "currentValues": {},
+    "overwrite": false
+  }'
+```
+
 ## 错误响应
 
 所有错误响应使用统一结构。

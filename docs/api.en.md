@@ -107,6 +107,92 @@ curl -N -X POST http://localhost:3000/v1/completions/inline \
   }'
 ```
 
+## Form Fill Suggestions
+
+```http
+POST /v1/forms/fill-suggestions
+Content-Type: application/json
+```
+
+Generates field suggestions from a user message, form field definitions, and current values. This endpoint only returns suggestions. It does not submit forms or perform OA write operations.
+
+### Request Body
+
+```json
+{
+  "formId": "weekly_report",
+  "userMessage": "This week I implemented the form-fill workflow, provider, and route.",
+  "fields": [
+    {
+      "name": "summary",
+      "label": "Work Summary",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "nextPlan",
+      "label": "Next Plan",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "currentValues": {},
+  "overwrite": false
+}
+```
+
+Fields:
+
+- `formId`: Form identifier.
+- `userMessage`: Natural-language description from the user.
+- `fields`: List of fillable fields.
+- `currentValues`: Optional current field values.
+- `overwrite`: Optional. Defaults to `false`, so existing values are preserved.
+
+Supported field types: `text`, `textarea`, `number`, `date`, `select`.
+
+### Response Example
+
+```json
+{
+  "id": "chatcmpl_123",
+  "suggestions": {
+    "summary": "Implemented the first version of form-fill suggestions, including workflow, provider, and route support.",
+    "nextPlan": "Next week, validate the live API behavior and improve documentation examples."
+  },
+  "missingFields": [],
+  "warnings": [],
+  "model": "deepseek-chat"
+}
+```
+
+### Example
+
+```bash
+curl -X POST http://localhost:3000/v1/forms/fill-suggestions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "formId": "weekly_report",
+    "userMessage": "This week I implemented the form-fill workflow, provider, and route. Next week I will validate the live API.",
+    "fields": [
+      {
+        "name": "summary",
+        "label": "Work Summary",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "name": "nextPlan",
+        "label": "Next Plan",
+        "type": "textarea",
+        "required": true
+      }
+    ],
+    "currentValues": {},
+    "overwrite": false
+  }'
+```
+
 ## Error Responses
 
 All error responses use a common structure.
